@@ -14,7 +14,8 @@ namespace
 // Loads a high-resolution shell icon for `path` and returns it as raw 32bpp
 // premultiplied-BGRA pixels (no COM objects survive the call, so the result is
 // safe to hand to another thread). Runs on the icon worker thread.
-IconPixels LoadIconPixels(IWICImagingFactory* wic, const std::wstring& path, int size)
+IconPixels LoadIconPixels(IWICImagingFactory* wic, const std::wstring& path, int size,
+                          bool iconOnly)
 {
     IconPixels out;
 
@@ -24,7 +25,19 @@ IconPixels LoadIconPixels(IWICImagingFactory* wic, const std::wstring& path, int
 
     SIZE    s{ size, size };
     HBITMAP hbmp = nullptr;
-    if (FAILED(imgFactory->GetImage(s, SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK, &hbmp)) || !hbmp)
+    // For files we request a real thumbnail/preview (the same image Explorer
+    // shows in its icon views: photos, videos, PDFs, Office documents...) with a
+    // transparent icon fallback. SIIGBF_BIGGERSIZEOK lets the shell return a
+    // larger source than asked so the down-scaled result stays crisp.
+    //
+    // Folders are forced to SIIGBF_ICONONLY: the shell composites folder content
+    // previews onto an opaque white "card", which reads as an ugly white border
+    // on our dark panel. The plain folder icon has a clean transparent
+    // background and renders consistently, which is what we want.
+    DWORD flags = SIIGBF_BIGGERSIZEOK;
+    if (iconOnly)
+        flags |= SIIGBF_ICONONLY;
+    if (FAILED(imgFactory->GetImage(s, flags, &hbmp)) || !hbmp)
         return out;
 
     ComPtr<IWICBitmap> wbmp;
@@ -133,11 +146,17 @@ void FolderModel::StartIconLoad(HWND notify, UINT msg, int pixelSize)
     const uint64_t gen = generation_;
 
     std::vector<std::wstring> paths;
+    std::vector<char>         folderFlags; // 1 = folder -> icon only (no white card)
     paths.reserve(items_.size());
+    folderFlags.reserve(items_.size());
     for (const auto& it : items_)
+    {
         paths.push_back(it.path);
+        folderFlags.push_back(it.isFolder ? 1 : 0);
+    }
 
-    std::thread([gen, paths = std::move(paths), notify, msg, pixelSize]() mutable {
+    std::thread([gen, paths = std::move(paths), folderFlags = std::move(folderFlags), notify, msg,
+                 pixelSize]() mutable {
         CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         auto batch        = std::make_unique<IconBatch>();
         batch->generation = gen;
@@ -148,7 +167,8 @@ void FolderModel::StartIconLoad(HWND notify, UINT msg, int pixelSize)
             {
                 batch->icons.resize(paths.size());
                 for (size_t i = 0; i < paths.size(); ++i)
-                    batch->icons[i] = LoadIconPixels(wic.Get(), paths[i], pixelSize);
+                    batch->icons[i] =
+                        LoadIconPixels(wic.Get(), paths[i], pixelSize, folderFlags[i] != 0);
             }
         } // release the WIC factory before CoUninitialize
         CoUninitialize();

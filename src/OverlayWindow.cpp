@@ -406,9 +406,20 @@ void OverlayWindow::Render(float scale)
 
             if (iconCache_[i])
             {
-                const float       ix  = cx + (kCellW - kIcon) / 2.0f;
-                const float       iy  = cy + kIconTop;
-                const D2D1_RECT_F dst = D2D1::RectF(ix, iy, ix + kIcon, iy + kIcon);
+                // Thumbnails are rarely square, so fit the bitmap inside the
+                // icon box while preserving its aspect ratio and centre it — the
+                // same letterboxing Explorer uses for previews in its cells.
+                const D2D1_SIZE_F bs = iconCache_[i]->GetSize();
+                float             dw = kIcon, dh = kIcon;
+                if (bs.width > 0.0f && bs.height > 0.0f)
+                {
+                    const float fit = std::min(kIcon / bs.width, kIcon / bs.height);
+                    dw              = bs.width * fit;
+                    dh              = bs.height * fit;
+                }
+                const float       ix  = cx + (kCellW - dw) / 2.0f;
+                const float       iy  = cy + kIconTop + (kIcon - dh) / 2.0f;
+                const D2D1_RECT_F dst = D2D1::RectF(ix, iy, ix + dw, iy + dh);
                 dcRT_->DrawBitmap(iconCache_[i].Get(), dst, 1.0f,
                                   D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
             }
