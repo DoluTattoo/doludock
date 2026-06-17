@@ -137,8 +137,11 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
         return 1;
     }
 
-    Settings settings = LoadSettings();
-    settings.folder   = ResolveStartupFolder(settings.folder);
+    Settings   settings    = LoadSettings();
+    const bool firstLaunch = !SettingsExist();
+    if (firstLaunch)
+        SaveSettings(settings); // create the store now so we greet only once
+    settings.folder = ResolveStartupFolder(settings.folder);
 
     FolderModel model;
     model.SetFolder(settings.folder);
@@ -182,6 +185,11 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
 
     // Kick off the (non-blocking) icon load now that the control window exists.
     model.StartIconLoad(ctrl, dk::WM_APP_ICONS_READY, 128);
+
+    // On the very first launch, open settings so the user can pick a folder;
+    // the Desktop is shown as a live preview behind it in the meantime.
+    if (firstLaunch)
+        PostMessageW(ctrl, dk::WM_APP_SHOWSETTINGS, 0, 0);
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0))

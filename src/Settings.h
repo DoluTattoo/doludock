@@ -60,6 +60,10 @@ struct Settings
 Settings     LoadSettings();
 void         SaveSettings(const Settings& s);
 
+// True once settings have been persisted (the registry key exists); used to
+// detect the very first launch.
+bool         SettingsExist();
+
 // "Start with Windows": reads / writes the per-user Run key directly (this is
 // OS state, kept out of the Settings blob).
 bool         IsAutostartEnabled();

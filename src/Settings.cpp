@@ -163,6 +163,17 @@ void SaveSettings(const Settings& s)
     RegCloseKey(key);
 }
 
+bool SettingsExist()
+{
+    HKEY key = nullptr;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, kKey, 0, KEY_READ, &key) == ERROR_SUCCESS)
+    {
+        RegCloseKey(key);
+        return true;
+    }
+    return false;
+}
+
 namespace
 {
 constexpr wchar_t kRunKey[]   = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
