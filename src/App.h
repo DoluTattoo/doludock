@@ -59,6 +59,7 @@ struct App
     void SetRoundedCorners(bool rounded);
     void SetColumns(int columns);
     void SetRows(int rows);
+    void SetPadding(int padding, bool persist = true);
     void SetCenterCursor(bool center);
     void SetOffset(int x, int y, bool persist = true);
     void SetAnimations(bool enabled);

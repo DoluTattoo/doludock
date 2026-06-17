@@ -124,6 +124,7 @@ Settings LoadSettings()
     s.animations          = ReadDword(L"Animations", 1) != 0;
     s.gridColumns         = static_cast<int>(ReadDword(L"GridColumns", 0));
     s.gridRows            = static_cast<int>(ReadDword(L"GridRows", 0));
+    s.padding             = static_cast<int>(ReadDword(L"Padding", 20));
     s.centerCursor        = ReadDword(L"CenterCursor", 1) != 0;
     s.offsetX             = static_cast<int>(ReadDword(L"OffsetX", 0));
     s.offsetY             = static_cast<int>(ReadDword(L"OffsetY", 0));
@@ -133,6 +134,7 @@ Settings LoadSettings()
     s.opacity     = std::clamp(s.opacity, dk::kOpacityMin, dk::kOpacityMax);
     s.gridColumns = std::clamp(s.gridColumns, dk::kGridMin, dk::kGridMax);
     s.gridRows    = std::clamp(s.gridRows, dk::kGridMin, dk::kGridMax);
+    s.padding     = std::clamp(s.padding, dk::kPaddingMin, dk::kPaddingMax);
     s.offsetX     = std::clamp(s.offsetX, -dk::kOffsetLimit, dk::kOffsetLimit);
     s.offsetY     = std::clamp(s.offsetY, -dk::kOffsetLimit, dk::kOffsetLimit);
     return s;
@@ -157,6 +159,7 @@ void SaveSettings(const Settings& s)
     WriteDword(key, L"Animations", s.animations ? 1 : 0);
     WriteDword(key, L"GridColumns", static_cast<DWORD>(s.gridColumns));
     WriteDword(key, L"GridRows", static_cast<DWORD>(s.gridRows));
+    WriteDword(key, L"Padding", static_cast<DWORD>(s.padding));
     WriteDword(key, L"CenterCursor", s.centerCursor ? 1 : 0);
     WriteDword(key, L"OffsetX", static_cast<DWORD>(s.offsetX));
     WriteDword(key, L"OffsetY", static_cast<DWORD>(s.offsetY));

@@ -52,6 +52,8 @@ enum : int
     IDC_OFFY_LABEL,
     IDC_OFFX_VAL,
     IDC_OFFY_VAL,
+    IDC_PADDING_LABEL,
+    IDC_PADDING_VAL,
     IDC_TITLE,
     IDC_HOTKEY_BTN = 2100,
     IDC_TOGGLE,
@@ -67,6 +69,7 @@ enum : int
     IDC_OFFSET_X,
     IDC_OFFSET_Y,
     IDC_OFFSET_RESET,
+    IDC_PADDING,
     IDC_ANIM,
     IDC_AUTOSTART,
     IDC_CLOSE,
@@ -185,7 +188,7 @@ void SettingsWindow::EnsureCreated()
     dpi_ = GetDpiForSystem();
     auto S = [this](int v) { return MulDiv(v, static_cast<int>(dpi_), 96); };
 
-    RECT rc{ 0, 0, S(480), S(812) };
+    RECT rc{ 0, 0, S(480), S(846) };
     AdjustWindowRectExForDpi(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, 0, dpi_);
     const int w = rc.right - rc.left;
     const int h = rc.bottom - rc.top;
@@ -293,6 +296,15 @@ void SettingsWindow::CreateControls()
     hCenterCursor_ = make(L"BUTTON", L"Center cursor on the panel when it opens",
                           BS_AUTOCHECKBOX | WS_TABSTOP, M, yc, fullW, 24, IDC_CENTER_CURSOR, font_,
                           L"DarkMode_Explorer");
+    yc += 34;
+    make(L"STATIC", L"Inner padding", SS_LEFT | SS_CENTERIMAGE, M, yc, 110, 28, IDC_PADDING_LABEL,
+         font_, nullptr);
+    hPadding_ = make(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_NOTICKS | WS_TABSTOP, M + 104, yc, 200,
+                     28, IDC_PADDING, font_, nullptr);
+    SendMessageW(hPadding_, TBM_SETRANGE, TRUE, MAKELPARAM(dk::kPaddingMin, dk::kPaddingMax));
+    SendMessageW(hPadding_, TBM_SETPAGESIZE, 0, 4);
+    hPaddingVal_ = make(L"STATIC", L"20 px", SS_LEFT | SS_CENTERIMAGE, M + 104 + 208, yc, 50, 28,
+                        IDC_PADDING_VAL, font_, nullptr);
     yc += 40;
 
     make(L"STATIC", L"Position", SS_LEFT, M, yc, 200, 20, IDC_SEC_POSITION, sectionFont_, nullptr);
@@ -460,6 +472,10 @@ void SettingsWindow::RefreshFromSettings()
     ComboBox_SetCurSel(hColumns_, s.gridColumns); // 0 = Auto, 1..10 map to index
     ComboBox_SetCurSel(hRows_, s.gridRows);
     Button_SetCheck(hCenterCursor_, s.centerCursor ? BST_CHECKED : BST_UNCHECKED);
+    SendMessageW(hPadding_, TBM_SETPOS, TRUE, s.padding);
+    wchar_t padTxt[16];
+    swprintf_s(padTxt, L"%d px", s.padding);
+    SetWindowTextW(hPaddingVal_, padTxt);
     SendMessageW(hOffsetX_, TBM_SETPOS, TRUE, s.offsetX);
     SendMessageW(hOffsetY_, TBM_SETPOS, TRUE, s.offsetY);
     SetPxLabel(hOffXVal_, s.offsetX);
@@ -622,6 +638,18 @@ LRESULT SettingsWindow::WndProc(UINT m, WPARAM w, LPARAM l)
             SetPxLabel(hOffYVal_, y);
             // On a discrete change / drag release (not a live thumb drag), settle
             // the settings window aside if it would now overlap the overlay.
+            if (LOWORD(w) != TB_THUMBTRACK)
+                app_.ReflowPreview();
+        }
+        else if (reinterpret_cast<HWND>(l) == hPadding_)
+        {
+            const int pos = static_cast<int>(SendMessageW(hPadding_, TBM_GETPOS, 0, 0));
+            app_.SetPadding(pos, persist); // resizes the overlay live
+            wchar_t buf[16];
+            swprintf_s(buf, L"%d px", pos);
+            SetWindowTextW(hPaddingVal_, buf);
+            // Padding changes the panel size; once settled, dodge the settings
+            // window if the now-resized overlay would overlap it.
             if (LOWORD(w) != TB_THUMBTRACK)
                 app_.ReflowPreview();
         }

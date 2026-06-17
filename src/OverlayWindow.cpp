@@ -27,7 +27,6 @@ constexpr int kCornerRound      = 2;
 namespace
 {
 // Layout metrics in logical units (DIPs). Scaled by the monitor DPI at render.
-constexpr float kPad      = 20.0f;
 constexpr float kTitleH   = 26.0f;
 constexpr float kCellW    = 96.0f;
 constexpr float kCellH    = 98.0f;
@@ -280,9 +279,9 @@ void OverlayWindow::ComputeLayout(float scale)
 
     const float gridW = cols * kCellW;
     const bool  hasHeader = showName_ || showCount_;
-    gridTopDip_       = hasHeader ? (kPad + kTitleH + 8.0f) : kPad;
-    panelWDip_        = std::max(gridW + 2.0f * kPad, kMinWidth);
-    panelHDip_        = gridTopDip_ + ((n > 0) ? rows * kCellH : 60.0f) + kPad;
+    gridTopDip_       = hasHeader ? (padding_ + kTitleH + 8.0f) : padding_;
+    panelWDip_        = std::max(gridW + 2.0f * padding_, kMinWidth);
+    panelHDip_        = gridTopDip_ + ((n > 0) ? rows * kCellH : 60.0f) + padding_;
     gridLeftDip_      = (panelWDip_ - gridW) / 2.0f;
 
     panelPxW_ = static_cast<int>(std::lround(panelWDip_ * scale));
@@ -373,7 +372,7 @@ void OverlayWindow::Render(float scale)
             title = title.empty() ? c : title + L"   \u00B7   " + c;
         }
         const D2D1_RECT_F titleRect =
-            D2D1::RectF(kPad, kPad - 2.0f, panelWDip_ - kPad, kPad + kTitleH);
+            D2D1::RectF(padding_, padding_ - 2.0f, panelWDip_ - padding_, padding_ + kTitleH);
         dcRT_->DrawText(title.c_str(), static_cast<UINT32>(title.size()), titleFormat_.Get(),
                         titleRect, brushTitle_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
     }
@@ -381,7 +380,7 @@ void OverlayWindow::Render(float scale)
     if (items.empty())
     {
         const D2D1_RECT_F r =
-            D2D1::RectF(kPad, gridTopDip_, panelWDip_ - kPad, panelHDip_ - kPad);
+            D2D1::RectF(padding_, gridTopDip_, panelWDip_ - padding_, panelHDip_ - padding_);
         const wchar_t* msg = L"Empty folder";
         dcRT_->DrawText(msg, static_cast<UINT32>(wcslen(msg)), textFormat_.Get(), r,
                         brushText_.Get());
@@ -398,10 +397,13 @@ void OverlayWindow::Render(float scale)
 
             if (static_cast<int>(i) == hoverIndex_)
             {
-                const D2D1_ROUNDED_RECT hl = D2D1::RoundedRect(
-                    D2D1::RectF(cx + 4.0f, cy + 4.0f, cx + kCellW - 4.0f, cy + kCellH - 4.0f),
-                    10.0f, 10.0f);
-                dcRT_->FillRoundedRectangle(hl, brushHover_.Get());
+                const D2D1_RECT_F hlRect = D2D1::RectF(cx + 4.0f, cy + 4.0f, cx + kCellW - 4.0f,
+                                                       cy + kCellH - 4.0f);
+                if (rounded_)
+                    dcRT_->FillRoundedRectangle(D2D1::RoundedRect(hlRect, 10.0f, 10.0f),
+                                                brushHover_.Get());
+                else
+                    dcRT_->FillRectangle(hlRect, brushHover_.Get());
             }
 
             if (iconCache_[i])
@@ -655,6 +657,13 @@ void OverlayWindow::SetGrid(int columns, int rows)
     userRows_ = rows;
     // The panel size may change; the caller re-lays-out (App::LayoutPreview) or
     // the next Show() recomputes from scratch.
+}
+
+void OverlayWindow::SetPadding(int padding)
+{
+    padding_ = static_cast<float>(padding);
+    // The panel size changes; the caller re-lays-out (App::PlaceOverlayPreview)
+    // or the next Show() recomputes from scratch.
 }
 
 void OverlayWindow::SetCenterCursor(bool center)

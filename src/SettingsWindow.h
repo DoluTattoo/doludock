@@ -60,6 +60,8 @@ private:
     HWND hColumns_     = nullptr;
     HWND hRows_        = nullptr;
     HWND hCenterCursor_= nullptr;
+    HWND hPadding_     = nullptr;
+    HWND hPaddingVal_  = nullptr;
     HWND hOffsetX_     = nullptr;
     HWND hOffsetY_     = nullptr;
     HWND hOffXVal_     = nullptr;

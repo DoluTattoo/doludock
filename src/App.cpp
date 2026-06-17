@@ -63,6 +63,7 @@ void App::ApplyAll()
         overlay->SetOpacity(settings.opacity / 100.0f);
         overlay->SetRounded(settings.roundedCorners);
         overlay->SetGrid(settings.gridColumns, settings.gridRows);
+        overlay->SetPadding(settings.padding);
         overlay->SetCenterCursor(settings.centerCursor);
         overlay->SetOffset(settings.offsetX, settings.offsetY);
         overlay->SetAnimations(settings.animations);
@@ -178,6 +179,17 @@ void App::SetRows(int rows)
     SaveSettings(settings);
     if (previewActive_)
         LayoutPreview();
+}
+
+void App::SetPadding(int padding, bool persist)
+{
+    settings.padding = padding;
+    if (overlay)
+        overlay->SetPadding(padding);
+    if (persist)
+        SaveSettings(settings);
+    if (previewActive_)
+        PlaceOverlayPreview(); // padding changes the panel size; resize live
 }
 
 void App::SetCenterCursor(bool center)

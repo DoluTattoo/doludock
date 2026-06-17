@@ -39,6 +39,7 @@ public:
     void SetOpacity(float alpha);
     void SetRounded(bool rounded);
     void SetGrid(int columns, int rows);
+    void SetPadding(int padding);
     void SetCenterCursor(bool center);
     void SetOffset(int offsetX, int offsetY);
     void SetAnimations(bool enabled);
@@ -112,6 +113,7 @@ private:
     bool          rounded_       = true;  // rounded panel corners
     int           userCols_      = 0;     // 0 = auto
     int           userRows_      = 0;     // 0 = auto
+    float         padding_       = 20.0f; // inner panel padding, DIPs
     bool          centerCursor_  = true;  // place cursor on panel at Show()
     int           offsetX_       = 0;     // open-position nudge, px
     int           offsetY_       = 0;

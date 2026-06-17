@@ -22,6 +22,8 @@ constexpr int kOpacityMin  = 10;
 constexpr int kOpacityMax  = 100;
 constexpr int kGridMin     = 0;    // 0 = auto
 constexpr int kGridMax     = 10;
+constexpr int kPaddingMin  = 0;    // inner panel padding, px
+constexpr int kPaddingMax  = 60;
 } // namespace dk
 
 // Backdrop applied to the overlay panel.
@@ -52,6 +54,7 @@ struct Settings
     bool          animations     = true;                // fade in/out
     int           gridColumns    = 0;                  // 0 = auto
     int           gridRows       = 0;                  // 0 = auto
+    int           padding        = 20;                 // inner panel padding, px
     bool          centerCursor   = true;               // place cursor on panel at open
     int           offsetX        = 0;                  // open-position nudge, px (+right)
     int           offsetY        = 0;                  // open-position nudge, px (+down)
