@@ -1,0 +1,20 @@
+# Style for the doludock codebase: Allman braces, 4-space indent, aligned
+# declarations, 100-column lines. Run `clang-format -i src/*.cpp src/*.h`.
+Language:        Cpp
+BasedOnStyle:    Microsoft
+ColumnLimit:     100
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+PointerAlignment: Left
+ReferenceAlignment: Left
+BreakBeforeBraces: Allman
+AlignConsecutiveAssignments:  true
+AlignConsecutiveDeclarations: true
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+SpaceAfterCStyleCast: false
+SortIncludes:    false
+IndentCaseLabels: false

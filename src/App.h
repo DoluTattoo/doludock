@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Dolu <https://github.com/DoluTattoo>
+
+#pragma once
+
+#include "Common.h"
+#include "Settings.h"
+#include <shellapi.h>
+
+#include <memory>
+
+class OverlayWindow;
+class KeyboardHook;
+class FolderModel;
+class SettingsWindow;
+struct IWICImagingFactory;
+struct IconBatch;
+
+namespace dk
+{
+// Messages posted to the hidden control window (handled in main.cpp CtrlProc).
+constexpr UINT WM_TRAY             = WM_APP + 1;
+constexpr UINT WM_APP_SHOW         = WM_APP + 2;
+constexpr UINT WM_APP_HIDE         = WM_APP + 3;
+constexpr UINT WM_APP_TOGGLE       = WM_APP + 4;
+constexpr UINT WM_APP_SHOWSETTINGS = WM_APP + 5;
+constexpr UINT WM_APP_ICONS_READY  = WM_APP + 6;
+} // namespace dk
+
+// Shared application context: owns the live settings and wires every settings
+// change through to the overlay, the keyboard hook, the tray, and persistence.
+struct App
+{
+    HINSTANCE           hInst   = nullptr;
+    HWND                ctrl    = nullptr; // hidden message window
+    IWICImagingFactory* wic     = nullptr;
+    FolderModel*        model   = nullptr;
+    OverlayWindow*      overlay = nullptr;
+    KeyboardHook*       hook    = nullptr;
+    std::unique_ptr<SettingsWindow> settingsWnd;
+
+    Settings settings;
+
+    App();
+    ~App();
+
+    // Pushes the whole settings state to the overlay, hook and tray.
+    void ApplyAll();
+
+    // Individual mutations: update settings, apply live, and persist.
+    void SetFolder(const std::wstring& path);
+    void ChooseFolderInteractive(HWND owner);
+    void SetHotkey(unsigned modifiers, unsigned vk);
+    void SetToggleMode(bool toggle);
+    void SetShowFolderName(bool show);
+    void SetShowItemCount(bool show);
+    void SetBackdrop(BackdropStyle backdrop);
+    void SetOpacity(int percent, bool persist = true);
+    void SetRoundedCorners(bool rounded);
+    void SetColumns(int columns);
+    void SetRows(int rows);
+    void SetCenterCursor(bool center);
+    void SetOffset(int x, int y, bool persist = true);
+    void SetAnimations(bool enabled);
+    void SetAutostart(bool enabled);
+
+    void OpenCurrentFolder();
+    void OnIconsReady(IconBatch* batch);
+    void ShowSettings();
+    void DestroySettings();
+    void OnSettingsClosed();
+    void LayoutPreview();
+    void PlaceOverlayPreview();
+    void ReflowPreview();
+    bool PreviewActive() const { return previewActive_; }
+    HWND SettingsHwnd() const;
+
+    // Tray icon.
+    void AddTray();
+    void RemoveTray();
+    void UpdateTrayTip();
+
+private:
+    void ApplyHotkey();
+    NOTIFYICONDATAW nid_{};
+    bool            previewActive_ = false;
+};

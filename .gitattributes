@@ -1,0 +1,19 @@
+# Normalize line endings: store LF in the repository, check out native per OS.
+* text=auto
+
+# Scripts that must keep platform-specific endings
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.sh    text eol=lf
+
+# The license is a verbatim document kept exactly as published
+LICENSE text eol=lf
+
+# Binary assets (never diff/normalize)
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.exe   binary
