@@ -4,6 +4,11 @@ out/
 cmake-build-*/
 install/
 
+# ---- Release packaging artifacts -------------------------------------------
+dist/
+packaging/Output/
+*-portable-x64.zip
+
 # ---- CMake -----------------------------------------------------------------
 CMakeCache.txt
 CMakeFiles/

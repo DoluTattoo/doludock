@@ -22,6 +22,17 @@ Click an item to open it.
 - **Stays out of the way** — a single instance only (re-launching just opens settings), icons load in the background so the UI never blocks.
 - **Configurable** — shortcut, hold/toggle, folder, layout, header, backdrop and start-with-Windows, all from a settings window; remembered across restarts.
 
+## Download
+
+Grab the latest build from the [**Releases**](https://github.com/DoluTattoo/doludock/releases) page:
+
+- **`doludock-x.y.z-setup.exe`** — one-click installer (Start-menu shortcut, optional
+  desktop icon and start-with-Windows, clean uninstall).
+- **`doludock-x.y.z-portable-x64.zip`** — just the `.exe`; unzip and run, nothing to install.
+
+Windows 10 / 11, 64-bit. The app is unsigned, so SmartScreen may warn on first run
+(*More info → Run anyway*).
+
 ## Build
 
 From a **Developer PowerShell for VS** (MSVC toolchain on `PATH`), with [CMake](https://cmake.org/) ≥ 3.21:
