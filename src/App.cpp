@@ -3,6 +3,7 @@
 
 #include "App.h"
 #include "FolderModel.h"
+#include "FolderWatcher.h"
 #include "KeyboardHook.h"
 #include "OverlayWindow.h"
 #include "SettingsWindow.h"
@@ -88,6 +89,7 @@ void App::SetFolder(const std::wstring& path)
     if (overlay)
         overlay->InvalidateIcons();
     model->StartIconLoad(ctrl, dk::WM_APP_ICONS_READY, kIconPixelSize);
+    StartWatching(); // watch the new folder for live changes
     UpdateTrayTip();
     SaveSettings(settings);
     if (previewActive_)
@@ -223,6 +225,29 @@ void App::SetAnimations(bool enabled)
 void App::SetAutostart(bool enabled)
 {
     SetAutostartEnabled(enabled); // writes the per-user Run key (Settings.cpp)
+}
+
+void App::StartWatching()
+{
+    if (!watcher)
+        watcher = std::make_unique<FolderWatcher>();
+    watcher->Start(model ? model->FolderPath() : std::wstring(), ctrl,
+                   dk::WM_APP_FOLDER_CHANGED);
+}
+
+void App::RefreshFolder()
+{
+    if (!model)
+        return;
+    model->Refresh();
+    if (overlay)
+        overlay->InvalidateIcons();
+    model->StartIconLoad(ctrl, dk::WM_APP_ICONS_READY, kIconPixelSize);
+    UpdateTrayTip();
+    if (previewActive_)
+        LayoutPreview();              // settings preview open: re-place + re-size
+    else if (overlay)
+        overlay->RelayoutIfVisible(); // live update if the overlay is open
 }
 
 void App::OnIconsReady(IconBatch* batch)

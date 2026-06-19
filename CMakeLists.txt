@@ -25,6 +25,7 @@ target_sources(doludock PRIVATE
     src/main.cpp
     src/App.cpp
     src/FolderModel.cpp
+    src/FolderWatcher.cpp
     src/KeyboardHook.cpp
     src/OverlayWindow.cpp
     src/Settings.cpp

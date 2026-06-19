@@ -8,6 +8,7 @@
 #include <shellapi.h>
 #include <algorithm>
 #include <thread>
+#include <unordered_map>
 
 namespace
 {
@@ -100,6 +101,15 @@ std::wstring FolderModel::FolderName() const
 void FolderModel::Refresh()
 {
     ++generation_;
+
+    // Carry over icons for entries that still exist so a refresh (after a folder
+    // change) doesn't blank every icon until the async re-load finishes; only
+    // genuinely new entries start without one.
+    std::unordered_map<std::wstring, ComPtr<IWICBitmapSource>> previousIcons;
+    for (auto& it : items_)
+        if (it.icon)
+            previousIcons.emplace(it.path, std::move(it.icon));
+
     items_.clear();
     if (folderPath_.empty())
         return;
@@ -126,6 +136,8 @@ void FolderModel::Refresh()
         it.path     = base + fd.cFileName;
         it.name     = ShellDisplayName(it.path, fd.cFileName);
         it.isFolder = (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+        if (auto found = previousIcons.find(it.path); found != previousIcons.end())
+            it.icon = found->second;
         items_.push_back(std::move(it));
     } while (FindNextFileW(h, &fd));
     FindClose(h);

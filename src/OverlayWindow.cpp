@@ -722,6 +722,33 @@ void OverlayWindow::RerenderIfVisible()
         Render(scale_);
 }
 
+void OverlayWindow::RelayoutIfVisible()
+{
+    // Re-measure and re-position for the current monitor when the folder
+    // contents changed while the overlay is open, so the panel grows or shrinks
+    // to fit. Preview mode is repositioned by the App (LayoutPreview) instead.
+    if (!visible_ || preview_)
+        return;
+
+    HMONITOR    mon = MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi{ sizeof(mi) };
+    GetMonitorInfoW(mon, &mi);
+
+    const SIZE sz    = MeasureForMonitor(mon);
+    const int  workW = mi.rcWork.right - mi.rcWork.left;
+    const int  workH = mi.rcWork.bottom - mi.rcWork.top;
+    const int  sw    = static_cast<int>(sz.cx);
+    const int  sh    = static_cast<int>(sz.cy);
+    int        px    = static_cast<int>(mi.rcWork.left) + (workW - sw) / 2 + offsetX_;
+    int        py    = static_cast<int>(mi.rcWork.top) + (workH - sh) / 2 + offsetY_;
+    px = std::clamp(px, static_cast<int>(mi.rcWork.left), static_cast<int>(mi.rcWork.right) - sw);
+    py = std::clamp(py, static_cast<int>(mi.rcWork.top), static_cast<int>(mi.rcWork.bottom) - sh);
+    panelPos_.x = px;
+    panelPos_.y = py;
+
+    Render(scale_);
+}
+
 int OverlayWindow::HitTest(POINT pt) const
 {
     for (size_t i = 0; i < itemRects_.size(); ++i)

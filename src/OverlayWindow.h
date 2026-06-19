@@ -24,6 +24,7 @@ public:
     void Hide();
     void InvalidateIcons();
     void RerenderIfVisible();
+    void RelayoutIfVisible();
     bool IsVisible() const { return visible_; }
     HWND Hwnd() const { return hwnd_; }
 

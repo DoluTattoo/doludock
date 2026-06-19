@@ -16,6 +16,9 @@
 
 namespace
 {
+// Coalesces a burst of file-system change notifications into a single refresh.
+constexpr UINT_PTR kFolderRefreshTimer = 1;
+
 LRESULT CALLBACK CtrlProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     auto* app = reinterpret_cast<App*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
@@ -52,6 +55,20 @@ LRESULT CALLBACK CtrlProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             app->OnIconsReady(reinterpret_cast<IconBatch*>(lParam));
         else
             delete reinterpret_cast<IconBatch*>(lParam);
+        return 0;
+
+    case dk::WM_APP_FOLDER_CHANGED:
+        // Debounce: wait for the change burst to settle, then refresh once.
+        SetTimer(hwnd, kFolderRefreshTimer, 200, nullptr);
+        return 0;
+
+    case WM_TIMER:
+        if (wParam == kFolderRefreshTimer)
+        {
+            KillTimer(hwnd, kFolderRefreshTimer);
+            if (app)
+                app->RefreshFolder();
+        }
         return 0;
 
     case dk::WM_TRAY:
@@ -185,6 +202,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
 
     // Kick off the (non-blocking) icon load now that the control window exists.
     model.StartIconLoad(ctrl, dk::WM_APP_ICONS_READY, 128);
+
+    // Watch the folder so the overlay reflects files added/removed/renamed.
+    app.StartWatching();
 
     // On the very first launch, open settings so the user can pick a folder;
     // the Desktop is shown as a live preview behind it in the meantime.

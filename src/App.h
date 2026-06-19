@@ -13,6 +13,7 @@ class OverlayWindow;
 class KeyboardHook;
 class FolderModel;
 class SettingsWindow;
+class FolderWatcher;
 struct IWICImagingFactory;
 struct IconBatch;
 
@@ -25,6 +26,7 @@ constexpr UINT WM_APP_HIDE         = WM_APP + 3;
 constexpr UINT WM_APP_TOGGLE       = WM_APP + 4;
 constexpr UINT WM_APP_SHOWSETTINGS = WM_APP + 5;
 constexpr UINT WM_APP_ICONS_READY  = WM_APP + 6;
+constexpr UINT WM_APP_FOLDER_CHANGED = WM_APP + 7;
 } // namespace dk
 
 // Shared application context: owns the live settings and wires every settings
@@ -38,6 +40,7 @@ struct App
     OverlayWindow*      overlay = nullptr;
     KeyboardHook*       hook    = nullptr;
     std::unique_ptr<SettingsWindow> settingsWnd;
+    std::unique_ptr<FolderWatcher>  watcher;
 
     Settings settings;
 
@@ -64,6 +67,11 @@ struct App
     void SetOffset(int x, int y, bool persist = true);
     void SetAnimations(bool enabled);
     void SetAutostart(bool enabled);
+
+    // Re-targets the folder watcher at the current folder.
+    void StartWatching();
+    // Re-enumerates the folder and reloads icons (folder contents changed).
+    void RefreshFolder();
 
     void OpenCurrentFolder();
     void OnIconsReady(IconBatch* batch);
