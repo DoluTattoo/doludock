@@ -16,6 +16,8 @@ class SettingsWindow;
 class FolderWatcher;
 struct IWICImagingFactory;
 struct IconBatch;
+struct UpdateResult;
+struct DownloadResult;
 
 namespace dk
 {
@@ -27,6 +29,8 @@ constexpr UINT WM_APP_TOGGLE       = WM_APP + 4;
 constexpr UINT WM_APP_SHOWSETTINGS = WM_APP + 5;
 constexpr UINT WM_APP_ICONS_READY  = WM_APP + 6;
 constexpr UINT WM_APP_FOLDER_CHANGED = WM_APP + 7;
+constexpr UINT WM_APP_UPDATE_READY = WM_APP + 8;
+constexpr UINT WM_APP_UPDATE_DOWNLOADED = WM_APP + 9;
 } // namespace dk
 
 // Shared application context: owns the live settings and wires every settings
@@ -67,6 +71,18 @@ struct App
     void SetOffset(int x, int y, bool persist = true);
     void SetAnimations(bool enabled);
     void SetAutostart(bool enabled);
+    void SetCheckForUpdates(bool enabled);
+
+    // Update check: kicks off an async GitHub query; userInitiated=true reports
+    // "you're up to date" / failures, otherwise the check is silent unless a
+    // newer version is found. OnUpdateChecked handles the posted result.
+    void CheckForUpdates(bool userInitiated);
+    void OnUpdateChecked(UpdateResult* result);
+
+    // Self-update: downloads the installer in the background, then launches it
+    // (silent, elevated) and quits so it can replace doludock and relaunch.
+    void BeginUpdateDownload(const std::wstring& url);
+    void OnUpdateDownloaded(DownloadResult* result);
 
     // Re-targets the folder watcher at the current folder.
     void StartWatching();
@@ -93,4 +109,6 @@ private:
     void ApplyHotkey();
     NOTIFYICONDATAW nid_{};
     bool            previewActive_ = false;
+    bool            updateCheckInProgress_ = false;
+    bool            updateDownloadInProgress_ = false;
 };

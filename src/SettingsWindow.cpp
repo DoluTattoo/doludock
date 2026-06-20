@@ -6,6 +6,7 @@
 #include "FolderModel.h"
 #include "KeyboardHook.h"
 #include "Settings.h"
+#include "UpdateChecker.h"
 #include "resource.h"
 
 #include <dwmapi.h>
@@ -41,6 +42,7 @@ enum : int
     IDC_SEC_HEADER,
     IDC_SEC_APPEARANCE,
     IDC_SEC_STARTUP,
+    IDC_SEC_UPDATES,
     IDC_HOTKEY_FIELD = 2010,
     IDC_FOLDER_PATH,
     IDC_BACKDROP_LABEL,
@@ -54,6 +56,7 @@ enum : int
     IDC_OFFY_VAL,
     IDC_PADDING_LABEL,
     IDC_PADDING_VAL,
+    IDC_UPDATE_STATUS,
     IDC_TITLE,
     IDC_HOTKEY_BTN = 2100,
     IDC_TOGGLE,
@@ -72,6 +75,8 @@ enum : int
     IDC_PADDING,
     IDC_ANIM,
     IDC_AUTOSTART,
+    IDC_UPDATE_CHECK,
+    IDC_UPDATE_NOW,
     IDC_CLOSE,
 };
 
@@ -188,7 +193,7 @@ void SettingsWindow::EnsureCreated()
     dpi_ = GetDpiForSystem();
     auto S = [this](int v) { return MulDiv(v, static_cast<int>(dpi_), 96); };
 
-    RECT rc{ 0, 0, S(480), S(846) };
+    RECT rc{ 0, 0, S(480), S(950) };
     AdjustWindowRectExForDpi(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE, 0, dpi_);
     const int w = rc.right - rc.left;
     const int h = rc.bottom - rc.top;
@@ -373,6 +378,17 @@ void SettingsWindow::CreateControls()
                        yc, fullW, 24, IDC_AUTOSTART, font_, L"DarkMode_Explorer");
     yc += 44;
 
+    make(L"STATIC", L"Updates", SS_LEFT, M, yc, 200, 20, IDC_SEC_UPDATES, sectionFont_, nullptr);
+    yc += 28;
+    hUpdateCheck_ = make(L"BUTTON", L"Check for updates at launch", BS_AUTOCHECKBOX | WS_TABSTOP, M,
+                         yc, fullW, 24, IDC_UPDATE_CHECK, font_, L"DarkMode_Explorer");
+    yc += 32;
+    hUpdateNow_   = make(L"BUTTON", L"Check now", BS_PUSHBUTTON | WS_TABSTOP, M, yc, 130, 30,
+                         IDC_UPDATE_NOW, font_, L"DarkMode_Explorer");
+    hUpdateStatus_ = make(L"STATIC", L"", SS_LEFT | SS_CENTERIMAGE | SS_PATHELLIPSIS, M + 142, yc,
+                          fullW - 142, 30, IDC_UPDATE_STATUS, font_, nullptr);
+    yc += 44;
+
     make(L"BUTTON", L"Close", BS_DEFPUSHBUTTON | WS_TABSTOP, btnX, yc, btnW, 32, IDC_CLOSE, font_,
          L"DarkMode_Explorer");
     yc += 32 + 18; // bottom margin
@@ -402,6 +418,7 @@ void SettingsWindow::CreateControls()
     fit(hRounded_);
     fit(hAnim_);
     fit(hAutostart_);
+    fit(hUpdateCheck_);
 }
 
 // Caps the window to the monitor work area and configures the vertical
@@ -488,6 +505,14 @@ void SettingsWindow::RefreshFromSettings()
     Button_SetCheck(hRounded_, s.roundedCorners ? BST_CHECKED : BST_UNCHECKED);
     Button_SetCheck(hAnim_, s.animations ? BST_CHECKED : BST_UNCHECKED);
     Button_SetCheck(hAutostart_, IsAutostartEnabled() ? BST_CHECKED : BST_UNCHECKED);
+    Button_SetCheck(hUpdateCheck_, s.checkForUpdates ? BST_CHECKED : BST_UNCHECKED);
+    SetWindowTextW(hUpdateStatus_, (L"Version " + dk::CurrentVersionW()).c_str());
+}
+
+void SettingsWindow::SetUpdateStatus(const std::wstring& text)
+{
+    if (hUpdateStatus_)
+        SetWindowTextW(hUpdateStatus_, text.c_str());
 }
 
 void SettingsWindow::RefreshHotkeyField()
@@ -585,6 +610,13 @@ void SettingsWindow::OnCommand(int id, int code)
         break;
     case IDC_AUTOSTART:
         app_.SetAutostart(Button_GetCheck(hAutostart_) == BST_CHECKED);
+        break;
+    case IDC_UPDATE_CHECK:
+        app_.SetCheckForUpdates(Button_GetCheck(hUpdateCheck_) == BST_CHECKED);
+        break;
+    case IDC_UPDATE_NOW:
+        SetWindowTextW(hUpdateStatus_, L"Checking\u2026");
+        app_.CheckForUpdates(true);
         break;
     case IDCANCEL:
     case IDC_CLOSE:
@@ -697,7 +729,7 @@ LRESULT SettingsWindow::WndProc(UINT m, WPARAM w, LPARAM l)
         }
         // Labels, check boxes and the slider all share the window background, so
         // they blend in seamlessly and (being opaque) erase old text on change.
-        const bool section = (id >= IDC_SEC_SHORTCUT && id <= IDC_SEC_STARTUP);
+        const bool section = (id >= IDC_SEC_SHORTCUT && id <= IDC_SEC_UPDATES);
         SetTextColor(hdc, section ? kAccentColor : kTextColor);
         SetBkColor(hdc, kBackColor);
         return reinterpret_cast<LRESULT>(ctlBrush_);

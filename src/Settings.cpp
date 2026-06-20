@@ -128,6 +128,7 @@ Settings LoadSettings()
     s.centerCursor        = ReadDword(L"CenterCursor", 1) != 0;
     s.offsetX             = static_cast<int>(ReadDword(L"OffsetX", 0));
     s.offsetY             = static_cast<int>(ReadDword(L"OffsetY", 0));
+    s.checkForUpdates     = ReadDword(L"CheckForUpdates", 1) != 0;
 
     if (s.hotkey.vk == 0 || IsModifierVk(s.hotkey.vk))
         s.hotkey.vk = VK_SPACE;
@@ -163,6 +164,7 @@ void SaveSettings(const Settings& s)
     WriteDword(key, L"CenterCursor", s.centerCursor ? 1 : 0);
     WriteDword(key, L"OffsetX", static_cast<DWORD>(s.offsetX));
     WriteDword(key, L"OffsetY", static_cast<DWORD>(s.offsetY));
+    WriteDword(key, L"CheckForUpdates", s.checkForUpdates ? 1 : 0);
     RegCloseKey(key);
 }
 

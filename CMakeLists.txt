@@ -19,6 +19,12 @@ endif()
 
 option(DOLUDOCK_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
+# Version reported by the in-app update check. CI overrides this with the pushed
+# tag (e.g. -D DOLUDOCK_VERSION=0.2.0) so an installed build knows its own version.
+if(NOT DEFINED DOLUDOCK_VERSION)
+    set(DOLUDOCK_VERSION "${PROJECT_VERSION}")
+endif()
+
 add_executable(doludock WIN32)
 
 target_sources(doludock PRIVATE
@@ -30,6 +36,7 @@ target_sources(doludock PRIVATE
     src/OverlayWindow.cpp
     src/Settings.cpp
     src/SettingsWindow.cpp
+    src/UpdateChecker.cpp
     src/app.rc
     src/app.manifest)
 
@@ -41,7 +48,8 @@ target_compile_definitions(doludock PRIVATE
     UNICODE
     _UNICODE
     WIN32_LEAN_AND_MEAN
-    NOMINMAX)
+    NOMINMAX
+    DOLUDOCK_VERSION="${DOLUDOCK_VERSION}")
 
 if(MSVC)
     target_compile_options(doludock PRIVATE /W4 /permissive- /EHsc /utf-8)
@@ -63,4 +71,5 @@ target_link_libraries(doludock PRIVATE
     dwmapi
     uxtheme
     comctl32
-    shcore)
+    shcore
+    winhttp)

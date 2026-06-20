@@ -58,6 +58,7 @@ struct Settings
     bool          centerCursor   = true;               // place cursor on panel at open
     int           offsetX        = 0;                  // open-position nudge, px (+right)
     int           offsetY        = 0;                  // open-position nudge, px (+down)
+    bool          checkForUpdates = true;              // check GitHub for updates at launch
 };
 
 Settings     LoadSettings();

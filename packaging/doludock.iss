@@ -49,8 +49,9 @@ SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
-; doludock's single-instance mutex - lets the wizard notice a running copy.
-AppMutex=Local\doludock_singleton_4F1C
+; No AppMutex: the app's in-app updater launches this installer silently while it
+; is still running, and a held AppMutex would make a /SILENT install abort. The
+; ssInstall taskkill below stops any running instance before files are copied.
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -77,6 +78,10 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; \
   Flags: nowait postinstall skipifsilent
+; After an unattended (in-app auto-update) install, relaunch the app ourselves,
+; as the regular user so it never ends up running elevated. "--updated" makes a
+; launch that collides with the app's own relauncher exit quietly.
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--updated"; Flags: nowait runascurrentuser; Check: WizardSilent
 
 [UninstallRun]
 ; Stop the tray app (if running) before removing its files.

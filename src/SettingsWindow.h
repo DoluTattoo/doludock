@@ -20,6 +20,9 @@ public:
     void Reveal();  // show and bring to the foreground
     HWND Hwnd() const { return hwnd_; }
 
+    // Updates the "Updates" section status line (called from App after a check).
+    void SetUpdateStatus(const std::wstring& text);
+
 private:
     static LRESULT CALLBACK WndProcStatic(HWND, UINT, WPARAM, LPARAM);
     LRESULT WndProc(UINT, WPARAM, LPARAM);
@@ -72,4 +75,7 @@ private:
     HWND hRounded_     = nullptr;
     HWND hAnim_        = nullptr;
     HWND hAutostart_   = nullptr;
+    HWND hUpdateCheck_ = nullptr;
+    HWND hUpdateNow_   = nullptr;
+    HWND hUpdateStatus_= nullptr;
 };

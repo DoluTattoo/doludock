@@ -24,11 +24,11 @@ Click an item to open it.
 
 ## Download
 
-Grab the latest build from the [**Releases**](https://github.com/DoluTattoo/doludock/releases) page:
-
-- **`doludock-x.y.z-setup.exe`** — one-click installer (Start-menu shortcut, optional
-  desktop icon and start-with-Windows, clean uninstall).
-- **`doludock-x.y.z-portable-x64.zip`** — just the `.exe`; unzip and run, nothing to install.
+Grab the latest **`doludock-x.y.z-setup.exe`** from the
+[**Releases**](https://github.com/DoluTattoo/doludock/releases) page — a one-click
+installer (Start-menu shortcut, optional desktop icon and start-with-Windows, clean
+uninstall). Once installed, doludock checks for updates on launch and can install
+them for you (toggle it, or check on demand, in **Settings → Updates**).
 
 Windows 10 / 11, 64-bit. The app is unsigned, so SmartScreen may warn on first run
 (*More info → Run anyway*).

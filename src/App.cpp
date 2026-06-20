@@ -7,9 +7,11 @@
 #include "KeyboardHook.h"
 #include "OverlayWindow.h"
 #include "SettingsWindow.h"
+#include "UpdateChecker.h"
 #include "resource.h"
 
 #include <algorithm>
+#include <memory>
 #include <shlobj.h>
 
 namespace
@@ -225,6 +227,124 @@ void App::SetAnimations(bool enabled)
 void App::SetAutostart(bool enabled)
 {
     SetAutostartEnabled(enabled); // writes the per-user Run key (Settings.cpp)
+}
+
+void App::SetCheckForUpdates(bool enabled)
+{
+    settings.checkForUpdates = enabled;
+    SaveSettings(settings);
+}
+
+void App::CheckForUpdates(bool userInitiated)
+{
+    if (updateCheckInProgress_)
+        return;
+    updateCheckInProgress_ = true;
+    dk::CheckForUpdateAsync(ctrl, dk::WM_APP_UPDATE_READY, userInitiated);
+}
+
+void App::OnUpdateChecked(UpdateResult* result)
+{
+    std::unique_ptr<UpdateResult> res(result);
+    updateCheckInProgress_ = false;
+    if (!res)
+        return;
+
+    // Reflect the outcome in the settings window if it happens to be open.
+    if (settingsWnd)
+    {
+        std::wstring status;
+        if (res->failed)
+            status = L"Couldn't check for updates.";
+        else if (res->available)
+            status = L"Update available: " + res->latest;
+        else
+            status = L"You're up to date (" + res->current + L").";
+        settingsWnd->SetUpdateStatus(status);
+    }
+
+    if (res->available)
+    {
+        const HWND   owner = SettingsHwnd();
+        std::wstring text  = L"doludock " + res->latest + L" is available.\n\nYou have version " +
+                            res->current + L".\n\nDownload and install it now?";
+        const int choice = MessageBoxW(owner, text.c_str(), L"doludock \u2014 Update available",
+                                       MB_YESNO | MB_ICONINFORMATION | MB_SETFOREGROUND |
+                                           (owner ? 0u : MB_TOPMOST));
+        if (choice == IDYES)
+        {
+            if (!res->downloadUrl.empty())
+                BeginUpdateDownload(res->downloadUrl); // self-update
+            else
+                ShellExecuteW(nullptr, L"open", res->url.c_str(), nullptr, nullptr,
+                              SW_SHOWNORMAL); // fallback: open the releases page
+        }
+    }
+    else if (res->userInitiated && res->failed)
+    {
+        MessageBoxW(SettingsHwnd(), L"Couldn't check for updates. Please try again later.",
+                    L"doludock", MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
+    }
+}
+
+void App::BeginUpdateDownload(const std::wstring& url)
+{
+    if (updateDownloadInProgress_)
+        return;
+    updateDownloadInProgress_ = true;
+    if (settingsWnd)
+        settingsWnd->SetUpdateStatus(L"Downloading update\u2026");
+    dk::DownloadUpdateAsync(ctrl, dk::WM_APP_UPDATE_DOWNLOADED, url);
+}
+
+void App::OnUpdateDownloaded(DownloadResult* result)
+{
+    std::unique_ptr<DownloadResult> res(result);
+    updateDownloadInProgress_ = false;
+    if (!res || !res->ok)
+    {
+        if (settingsWnd)
+            settingsWnd->SetUpdateStatus(L"Update download failed.");
+        MessageBoxW(SettingsHwnd(), L"The update could not be downloaded. Please try again later.",
+                    L"doludock", MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
+        return;
+    }
+
+    if (settingsWnd)
+        settingsWnd->SetUpdateStatus(L"Installing update\u2026");
+
+    // Run the silent, self-elevating installer through a tiny detached cmd helper
+    // that relaunches the freshly installed build once the install finishes. The
+    // helper survives the installer's stop step (it isn't named doludock.exe) and
+    // "start" relaunches the app as the normal, non-elevated user. The installer's
+    // own [Run] step also relaunches it (covering non-default install folders); the
+    // "--updated" flag + the single-instance guard make any double launch harmless
+    // (no duplicate window, no stray settings pop-up).
+    std::wstring installedExe;
+    PWSTR        pf = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &pf)))
+    {
+        installedExe = std::wstring(pf) + L"\\doludock\\doludock.exe";
+        CoTaskMemFree(pf);
+    }
+
+    std::wstring params =
+        L"/c \"start /wait \"\" \"" + res->path + L"\" /SILENT /SUPPRESSMSGBOXES /NORESTART";
+    if (!installedExe.empty())
+        params += L" & if exist \"" + installedExe + L"\" start \"\" \"" + installedExe +
+                  L"\" --updated";
+    params += L"\"";
+
+    SHELLEXECUTEINFOW sei{ sizeof(sei) };
+    sei.fMask        = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI;
+    sei.lpVerb       = L"open";
+    sei.lpFile       = L"cmd.exe";
+    sei.lpParameters = params.c_str();
+    sei.nShow        = SW_HIDE;
+    if (ShellExecuteExW(&sei))
+        PostQuitMessage(0); // exit so the installer can replace doludock.exe
+    else if (settingsWnd)
+        settingsWnd->SetUpdateStatus(L"Update failed to start.");
 }
 
 void App::StartWatching()

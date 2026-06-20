@@ -7,6 +7,7 @@
 #include "KeyboardHook.h"
 #include "OverlayWindow.h"
 #include "Settings.h"
+#include "UpdateChecker.h"
 
 #include <commctrl.h>
 #include <shlobj.h>
@@ -55,6 +56,20 @@ LRESULT CALLBACK CtrlProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             app->OnIconsReady(reinterpret_cast<IconBatch*>(lParam));
         else
             delete reinterpret_cast<IconBatch*>(lParam);
+        return 0;
+
+    case dk::WM_APP_UPDATE_READY:
+        if (app)
+            app->OnUpdateChecked(reinterpret_cast<UpdateResult*>(lParam));
+        else
+            delete reinterpret_cast<UpdateResult*>(lParam);
+        return 0;
+
+    case dk::WM_APP_UPDATE_DOWNLOADED:
+        if (app)
+            app->OnUpdateDownloaded(reinterpret_cast<DownloadResult*>(lParam));
+        else
+            delete reinterpret_cast<DownloadResult*>(lParam);
         return 0;
 
     case dk::WM_APP_FOLDER_CHANGED:
@@ -125,15 +140,21 @@ std::wstring ResolveStartupFolder(const std::wstring& saved)
 }
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
+int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR lpCmdLine, int)
 {
-    // Single-instance guard: a second launch just asks the running one to open
+    // A relaunch right after a self-update is started with "--updated". If an
+    // instance somehow already runs (the installer and our relauncher can both
+    // fire), such a launch just exits quietly instead of popping up settings.
+    const bool afterUpdate = lpCmdLine && wcsstr(lpCmdLine, L"--updated") != nullptr;
+
+    // Single-instance guard: a normal second launch asks the running one to open
     // its settings, then exits.
     HANDLE singleton = CreateMutexW(nullptr, TRUE, L"Local\\doludock_singleton_4F1C");
     if (singleton && GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        if (HWND existing = FindWindowW(L"DoludockCtrl", nullptr))
-            PostMessageW(existing, dk::WM_APP_SHOWSETTINGS, 0, 0);
+        if (!afterUpdate)
+            if (HWND existing = FindWindowW(L"DoludockCtrl", nullptr))
+                PostMessageW(existing, dk::WM_APP_SHOWSETTINGS, 0, 0);
         CloseHandle(singleton);
         return 0;
     }
@@ -210,6 +231,8 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
     // the Desktop is shown as a live preview behind it in the meantime.
     if (firstLaunch)
         PostMessageW(ctrl, dk::WM_APP_SHOWSETTINGS, 0, 0);
+    else if (app.settings.checkForUpdates)
+        app.CheckForUpdates(false); // silent unless a newer release is available
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0))
